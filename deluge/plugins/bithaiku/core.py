@@ -2,17 +2,6 @@
 # -*- coding: utf-8 -*-#
 
 # Copyright (C) 2016 Brandon Haynes, Ryan Maas <bhaynes@cs.washington.edu, maas@cs.washington.edu>
-#
-# Basic plugin template created by:
-# Copyright (C) 2008 Martijn Voncken <mvoncken@gmail.com>
-# Copyright (C) 2007-2009 Andrew Resch <andrewresch@gmail.com>
-# Copyright (C) 2009 Damien Churchill <damoxc@gmail.com>
-# Copyright (C) 2010 Pedro Algarvio <pedro@algarvio.me>
-#
-# This file is part of BitHaiku and is licensed under GNU General Public License 3.0, or later, with
-# the additional special exception to link portions of this program with the OpenSSL library.
-# See LICENSE for more details.
-#
 
 import logging
 from deluge.plugins.pluginbase import CorePluginBase
@@ -20,15 +9,38 @@ import deluge.component as component
 import deluge.configmanager
 from deluge.core.rpcserver import export
 
-DEFAULT_PREFS = {
-    "test":"NiNiNi"
+DEFAULT_CONFIG = {
+    "test": "foo",
+    "commands": []
+}
+
+EXECUTE_ID = 0
+EXECUTE_EVENT = 1
+EXECUTE_COMMAND = 2
+
+EVENT_MAP = {
+    "complete": "TorrentFinishedEvent",
+    "added": "TorrentAddedEvent",
+    "removed": "TorrentRemovedEvent"
 }
 
 log = logging.getLogger(__name__)
 
+
 class Core(CorePluginBase):
+    def __init__(self, plugin_name):
+        super(Core, self).__init__(plugin_name)
+        self.config = None
+
+    @staticmethod
+    def on_torrent_added(torrent_id, *args):
+        log.error("Torrent added")
+
     def enable(self):
-        self.config = deluge.configmanager.ConfigManager("bithaiku.conf", DEFAULT_PREFS)
+        self.config = deluge.configmanager.ConfigManager("bithaiku.conf", DEFAULT_CONFIG)
+        component.get("EventManager").register_event_handler("TorrentAddedEvent", self.on_torrent_added)
+
+        log.error("BitHaiku plugin enabled.")
 
     def disable(self):
         pass
