@@ -31,10 +31,6 @@ class Core(CorePluginBase):
     def on_torrent_added(plugin, torrent_id, *args):
         log.error("Torrent added; initiating BitHaiku")
         torrent = component.get("TorrentManager")[torrent_id]
-        #torrent.force_error_state("Waiting for BitHaiku protocol to complete", False)
-        #torrent.pause()
-        #torrent.set_max_download_speed(-1)
-        #torrent.set_max_upload_speed(-1)
         plugin.config["torrents"].append(torrent_id)
         plugin.config.save()
 
