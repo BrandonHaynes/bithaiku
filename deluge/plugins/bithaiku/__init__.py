@@ -15,6 +15,7 @@
 #
 
 from deluge.plugins.init import PluginInitBase
+from bithaiku import BitHaikuMonitor
 
 class CorePlugin(PluginInitBase):
     def __init__(self, plugin_name):
