@@ -34,7 +34,7 @@ class Core(CorePluginBase):
         plugin.config["torrents"].append(torrent_id)
         plugin.config.save()
 
-        BitHaikuMonitor(torrent, component.get("Core").session).monitor()
+        BitHaikuMonitor(torrent, plugin.config["haiku"]).monitor()
 
     def enable(self):
         self.config = deluge.configmanager.ConfigManager("bithaiku.conf", DEFAULT_CONFIG)
