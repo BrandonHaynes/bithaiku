@@ -26,19 +26,30 @@ class Core(CorePluginBase):
     def __init__(self, plugin_name):
         super(Core, self).__init__(plugin_name)
         self.config = None
+        self.monitors = {}
 
     @staticmethod
     def on_torrent_added(plugin, torrent_id, *args):
         log.error("Torrent added; initiating BitHaiku")
         torrent = component.get("TorrentManager")[torrent_id]
+
         plugin.config["torrents"].append(torrent_id)
         plugin.config.save()
+        plugin.monitors[torrent_id] = BitHaikuMonitor(torrent, plugin.config["haiku"])
+        plugin.monitors[torrent_id].monitor()
 
-        BitHaikuMonitor(torrent, plugin.config["haiku"]).monitor()
+    @staticmethod
+    def on_torrent_removed(plugin, torrent_id, *args):
+        if torrent_id in plugin.monitors:
+            plugin.monitors[torrent_id].terminate()
+            del plugin.monitors[torrent_id]
 
     def enable(self):
         self.config = deluge.configmanager.ConfigManager("bithaiku.conf", DEFAULT_CONFIG)
-        component.get("EventManager").register_event_handler("TorrentAddedEvent", partial(self.on_torrent_added, self))
+        component.get("EventManager").register_event_handler("TorrentAddedEvent",
+                                                             partial(self.on_torrent_added, self))
+        component.get("EventManager").register_event_handler("TorrentRemovedEvent",
+                                                             partial(self.on_torrent_removed, self))
         log.error("BitHaiku plugin enabled.")
 
     def disable(self):

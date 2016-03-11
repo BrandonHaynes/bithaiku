@@ -28,6 +28,7 @@ class BitHaikuMonitor:
         self.upload_speed = self.torrent.options['max_upload_speed']
         self.running_delay = running_delay
         self.paused_delay = paused_delay
+        self.terminated = False
 
         self.torrent.set_max_download_speed(MIN_SPEED)
         self.torrent.set_max_upload_speed(MIN_SPEED)
@@ -37,17 +38,21 @@ class BitHaikuMonitor:
         return self.paused_delay if self.verifying_peers else self.running_delay
 
     def monitor(self):
-        success = all(map(self.verify_peer,
-                          (peer['ip']
-                           for peer in self.torrent.get_peers() + [{'ip': ip} for ip in self.pending_peers]
-                           if peer['ip'] not in (self.verified_peers + self.verifying_peers))))
+        if not self.terminated:
+            success = all(map(self.verify_peer,
+                              (peer['ip']
+                               for peer in self.torrent.get_peers() + [{'ip': ip} for ip in self.pending_peers]
+                               if peer['ip'] not in (self.verified_peers + self.verifying_peers))))
 
-        if self.verifying_peers or not success:
-            self.pause_torrent()
-        else:
-            self.resume_torrent()
+            if self.verifying_peers or not success:
+                self.pause_torrent()
+            else:
+                self.resume_torrent()
 
-        threading.Timer(self.delay, self.monitor).start()
+            threading.Timer(self.delay, self.monitor).start()
+
+    def terminate(self):
+        self.terminated = True
 
     def verify_peer(self, ip):
         self.pause_torrent()
