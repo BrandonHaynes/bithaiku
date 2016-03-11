@@ -31,7 +31,6 @@ class ServerTCPHandler(SocketServer.BaseRequestHandler):
         # Identify the address of the witness
         WitnessHOST, WitnessPORT = self.select_witness(self.data)        
 
-        # TODO wrap haiku and client address in JSON
         # Send haiku to the witness
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
