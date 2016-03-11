@@ -53,7 +53,9 @@ class Core(CorePluginBase):
         log.error("BitHaiku plugin enabled.")
 
     def disable(self):
-        pass
+        for monitor in self.monitors.values():
+            monitor.terminate()
+        self.monitors = {}
 
     def update(self):
         pass
