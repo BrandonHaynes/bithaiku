@@ -54,7 +54,7 @@ class ServerTCPHandler(SocketServer.BaseRequestHandler):
 
 if __name__ == "__main__":
     # TODO Generate server addresses 
-    HOST, PORT = "localhost", 12000
+    HOST, PORT = "", 12000
 
     # Create the server
     server = SocketServer.TCPServer((HOST, PORT), ServerTCPHandler)

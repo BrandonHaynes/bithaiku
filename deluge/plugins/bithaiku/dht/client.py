@@ -16,7 +16,7 @@ class ClientTCPHandler(SocketServer.BaseRequestHandler):
         self.request.sendall(self.data)
 
 if __name__ == "__main__":
-    HOST, PORT = "localhost", 12001
+    HOST, PORT = "", 12001
 
     server = SocketServer.TCPServer((HOST, PORT), ClientTCPHandler)
 

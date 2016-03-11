@@ -41,7 +41,7 @@ class WitnessTCPHandler(SocketServer.BaseRequestHandler):
 
 if __name__ == "__main__":
     # TODO Generate witness addresses
-    HOST, PORT = "localhost", 12002
+    HOST, PORT = "", 12002
 
     # Create the server
     server = SocketServer.TCPServer((HOST, PORT), WitnessTCPHandler)
