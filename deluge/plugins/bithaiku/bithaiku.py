@@ -6,8 +6,8 @@ import logging
 import json
 
 MIN_SPEED = 1./1024
-SERVER_PORT = 7779
-WITNESS_PORT = 7780
+SERVER_PORT = 12000
+CLIENT_PORT = 12002
 ALL_INTERFACES = ''
 
 log = logging.getLogger(__name__)
@@ -98,7 +98,6 @@ class BitHaikuServerVerifier:
             client.connect(('localhost', SERVER_PORT))
             # client.connect((self.host, SERVER_PORT))
             client.sendall(json.dumps({"data": self.monitor.haiku}))
-            client.close()
         except socket.error as e:
             log.error(e)
             return self.monitor.abandon_verification(self.ip)
@@ -106,6 +105,8 @@ class BitHaikuServerVerifier:
             log.error("Expecting hash " + hash_digest(self.monitor.haiku))
             BitHaikuWitnessVerifier(self.ip, self.monitor).resolve()
             return True
+        finally:
+            client.close()
 
 
 class BitHaikuWitnessVerifier(asyncore.dispatcher_with_send):
@@ -118,7 +119,7 @@ class BitHaikuWitnessVerifier(asyncore.dispatcher_with_send):
         try:
             self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
             self.set_reuse_addr()
-            self.bind((ALL_INTERFACES, WITNESS_PORT))
+            self.bind((ALL_INTERFACES, CLIENT_PORT))
             self.listen(8)
             asyncore.loop()
         except socket.error as e:
