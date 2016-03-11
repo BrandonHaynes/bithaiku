@@ -24,7 +24,6 @@ DEFAULT_CONFIG = {
 log = logging.getLogger(__name__)
 
 
-
 class Core(CorePluginBase):
     def __init__(self, plugin_name):
         super(Core, self).__init__(plugin_name)
@@ -55,7 +54,7 @@ class Core(CorePluginBase):
         component.get("EventManager").register_event_handler("TorrentRemovedEvent",
                                                              partial(self.on_torrent_removed, self))
         self.listeners.server = ServerTCPHandler.listen(SERVER_PORT)
-        self.listeners.witness= WitnessTCPHandler.listen(WITNESS_PORT)
+        self.listeners.witness = WitnessTCPHandler.listen(WITNESS_PORT)
         log.error("BitHaiku plugin enabled.")
 
     def disable(self):
