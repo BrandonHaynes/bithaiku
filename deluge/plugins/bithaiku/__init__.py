@@ -15,7 +15,7 @@
 #
 
 from deluge.plugins.init import PluginInitBase
-from bithaiku import BitHaikuMonitor
+from bithaiku import BitHaikuMonitor, SERVER_PORT, CLIENT_PORT, WITNESS_PORT
 
 class CorePlugin(PluginInitBase):
     def __init__(self, plugin_name):

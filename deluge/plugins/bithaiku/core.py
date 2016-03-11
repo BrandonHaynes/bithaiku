@@ -4,12 +4,14 @@
 # Copyright (C) 2016 Brandon Haynes, Ryan Maas <bhaynes@cs.washington.edu, maas@cs.washington.edu>
 
 import logging
+import collections
 from functools import partial
 from deluge.plugins.pluginbase import CorePluginBase
 import deluge.component as component
 import deluge.configmanager
 from deluge.core.rpcserver import export
-from deluge.plugins.bithaiku import BitHaikuMonitor
+from deluge.plugins.bithaiku import BitHaikuMonitor, SERVER_PORT, WITNESS_PORT
+from deluge.plugins.bithaiku.listeners import ServerTCPHandler, WitnessTCPHandler
 
 DEFAULT_CONFIG = {
     "haiku": "Hippopotamus\n"
@@ -22,11 +24,13 @@ DEFAULT_CONFIG = {
 log = logging.getLogger(__name__)
 
 
+
 class Core(CorePluginBase):
     def __init__(self, plugin_name):
         super(Core, self).__init__(plugin_name)
         self.config = None
         self.monitors = {}
+        self.listeners = collections.namedtuple('Listeners', 'server witness client')
 
     @staticmethod
     def on_torrent_added(plugin, torrent_id, *args):
@@ -50,12 +54,18 @@ class Core(CorePluginBase):
                                                              partial(self.on_torrent_added, self))
         component.get("EventManager").register_event_handler("TorrentRemovedEvent",
                                                              partial(self.on_torrent_removed, self))
+        self.listeners.server = ServerTCPHandler.listen(SERVER_PORT)
+        self.listeners.witness= WitnessTCPHandler.listen(WITNESS_PORT)
         log.error("BitHaiku plugin enabled.")
 
     def disable(self):
         for monitor in self.monitors.values():
             monitor.terminate()
         self.monitors = {}
+        log.error("Stopping server")
+        self.listeners.server.terminate()
+        self.listeners.witness.terminate()
+        log.error("Stopped server")
 
     def update(self):
         pass

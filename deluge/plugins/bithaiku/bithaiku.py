@@ -7,7 +7,9 @@ import json
 
 MIN_SPEED = 1./1024
 SERVER_PORT = 12000
+WITNESS_PORT = 12001
 CLIENT_PORT = 12002
+MAX_HAIKU_SIZE = 65535
 ALL_INTERFACES = ''
 
 log = logging.getLogger(__name__)
@@ -97,7 +99,7 @@ class BitHaikuServerVerifier:
         try:
             client.connect(('localhost', SERVER_PORT))
             # client.connect((self.host, SERVER_PORT))
-            client.sendall(json.dumps({"data": self.monitor.haiku}))
+            client.sendall(json.dumps({"host": "localhost", "data": self.monitor.haiku}))
         except socket.error as e:
             log.error(e)
             return self.monitor.abandon_verification(self.ip)
@@ -132,7 +134,7 @@ class BitHaikuWitnessVerifier(asyncore.dispatcher_with_send):
             client, address = pair
             log.error("Incoming connection from " + str(address))
 
-            data = client.recv(4096).strip()
+            data = client.recv(MAX_HAIKU_SIZE).strip()
             client.close()
 
             log.error("Read " + data)

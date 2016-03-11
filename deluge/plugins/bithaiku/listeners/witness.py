@@ -1,7 +1,17 @@
 import SocketServer
+import threading
 import socket
+import logging
 import hashlib
 import json
+
+ALL_INTERFACES = ''
+SERVER_PORT = 12000  #TODO
+WITNESS_PORT = 12001
+CLIENT_PORT = 12002
+MAX_HAIKU_SIZE = 65535
+log = logging.getLogger(__name__)
+
 
 class WitnessTCPHandler(SocketServer.BaseRequestHandler):
     """
@@ -14,38 +24,30 @@ class WitnessTCPHandler(SocketServer.BaseRequestHandler):
     demonstrating that it was received from the server.
     """
 
-    def handle(self):
-        # Recieve the data from the server, which is the haiku
-        self.data = self.request.recv(1024).strip()
-        print "{} wrote:".format(self.client_address[0])
-        print self.data
-        # Send back the same data
-        self.request.sendall(self.data.upper())
+    allow_reuse_address = True
 
-        # Get the haiku and address from the JSON object
-        message = json.loads(self.data)
-        ClientHOST, ClientPORT = message['client_host'], message['client_port']        
-        haiku = message['haiku']
+    @classmethod
+    def listen(cls, port, hostname=ALL_INTERFACES):
+        server = SocketServer.TCPServer((hostname, port), WitnessTCPHandler)
+        server.terminate = lambda: (server.shutdown(), server.socket.close())
+        threading.Thread(target=server.serve_forever).start()
+        return server
+
+    def handle(self):
+        # Receive the data from the server, which is the haiku
+        data = self.request.recv(MAX_HAIKU_SIZE).strip()
+        message = json.loads(data)
+        log.error("Witness: received {} from {}".format(data, self.client_address[0]))
 
         # Send hash of haiku to the known client
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)        
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             # Connect to client and send the hash of the haiku 
-            sock.connect((ClientHOST, ClientPORT))
-            sock.sendall(hashlib.sha256(haiku).hexdigest())
-
-            # Receive data from the server and shut down
-            received = sock.recv(1024)
+            client.connect((message['host'], CLIENT_PORT))
+            client.sendall(self.generate_client_response(message))
         finally:
-            sock.close() 
+            client.close()
 
-if __name__ == "__main__":
-    # TODO Generate witness addresses
-    HOST, PORT = "", 12002
-
-    # Create the server
-    server = SocketServer.TCPServer((HOST, PORT), WitnessTCPHandler)
-
-    # Activate the server; this will keep running until you
-    # interrupt the program with Ctrl-C
-    server.serve_forever()
+    @staticmethod
+    def generate_client_response(message):
+        return json.dumps({'hash': hashlib.sha256(message['data']).hexdigest()})

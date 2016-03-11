@@ -1,10 +1,20 @@
 import SocketServer
+import threading
 import socket
-import json
+import logging
 
-class ServerTCPHandler(SocketServer.BaseRequestHandler):
+ALL_INTERFACES = ''
+SERVER_PORT = 12000  # TODO
+WITNESS_PORT = 12001
+CLIENT_PORT = 12002
+MAX_HAIKU_SIZE = 65535
+
+log = logging.getLogger(__name__)
+
+
+class ServerTCPHandler(SocketServer.ThreadingMixIn, SocketServer.BaseRequestHandler):
     """
-    Implements server functionality in the bithaiku protocol.
+    Implements server functionality in the BitHaiku protocol.
 
     The server waits for a client to send it a haiku. It then 
     hashes the haiku and maps it to the DHT keyspace to find a witness.
@@ -13,52 +23,37 @@ class ServerTCPHandler(SocketServer.BaseRequestHandler):
     client owning the haiku and the haiku itself.
     """
 
-    def handle(self):
-        # Recieve the data from the client, which is the haiku
-        self.data = self.request.recv(1024).strip()
-        print "{} wrote:".format(self.client_address[0])
-        print self.data
-        # Acknowledge receipt of haiku
-        self.request.sendall("> Thanks, I won't share that with anyone *wink*\n")
+    allow_reuse_address = True
 
-        # Create json object
-        messsage = json.dumps(
-                { 'client_host': 'localhost',
-                  'client_port': 12001,
-                  'haiku': 'furu ike ya\nkawazu tobikomu\nmizu no oto'
-                 })
+    @classmethod
+    def listen(cls, port, hostname=ALL_INTERFACES):
+        log.error("Server listening")
+        server = SocketServer.TCPServer((hostname, port), ServerTCPHandler)
+        server.terminate = lambda: (server.shutdown(), server.socket.close())
+        threading.Thread(target=server.serve_forever).start()
+        return server
+
+    def handle(self):
+        # Receive the data from the client
+        data = self.request.recv(MAX_HAIKU_SIZE).strip()
+        log.error("Server: received {} from {}".format(data, self.client_address[0]))
 
         # Identify the address of the witness
-        WitnessHOST, WitnessPORT = self.select_witness(self.data)        
+        witness_hostname = self.select_witness(data)
 
         # Send haiku to the witness
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        witness = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             # Connect to server and send data
-            sock.connect((WitnessHOST, WitnessPORT))
-            sock.sendall(messsage)
-
-            # Receive data from the server and shut down
-            received = sock.recv(1024)
+            witness.connect((witness_hostname, WITNESS_PORT))
+            witness.sendall(data)
         finally:
-            sock.close() 
+            witness.close()
 
-    def select_witness(self, haiku):
+    @staticmethod
+    def select_witness(haiku):
         # TODO Hash the haiku and use the DHT to obtain
         # the address for a witness.
 
         # Return the placeholder witness address
-        return ("localhost", 12002)
-        
-
-
-if __name__ == "__main__":
-    # TODO Generate server addresses 
-    HOST, PORT = "", 12000
-
-    # Create the server
-    server = SocketServer.TCPServer((HOST, PORT), ServerTCPHandler)
-
-    # Activate the server; this will keep running until you
-    # interrupt the program with Ctrl-C
-    server.serve_forever()
+        return "localhost"
