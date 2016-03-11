@@ -13,7 +13,7 @@ class ClientTCPHandler(SocketServer.BaseRequestHandler):
         print "{} wrote:".format(self.client_address[0])
         print self.data
         # send back the data
-        self.request.sendall(self.data))
+        self.request.sendall(self.data)
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 12001

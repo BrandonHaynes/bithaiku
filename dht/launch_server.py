@@ -1,5 +1,6 @@
 import SocketServer
 import socket
+import json
 
 class ServerTCPHandler(SocketServer.BaseRequestHandler):
     """
@@ -20,6 +21,13 @@ class ServerTCPHandler(SocketServer.BaseRequestHandler):
         # Acknowledge receipt of haiku
         self.request.sendall("> Thanks, I won't share that with anyone *wink*\n")
 
+        # Create json object
+        messsage = json.dumps(
+                { 'client_host': 'localhost',
+                  'client_port': '12002',
+                  'haiku': 'furu ike ya\nkawazu tobikomu\nmizu no oto'
+                 })
+
         # Identify the address of the witness
         WitnessHOST, WitnessPORT = self.select_witness(self.data)        
 
@@ -29,7 +37,7 @@ class ServerTCPHandler(SocketServer.BaseRequestHandler):
         try:
             # Connect to server and send data
             sock.connect((WitnessHOST, WitnessPORT))
-            sock.sendall(self.data + "\n")
+            sock.sendall(messsage)
 
             # Receive data from the server and shut down
             received = sock.recv(1024)
