@@ -3,14 +3,6 @@ import threading
 import socket
 import logging
 
-ALL_INTERFACES = ''
-SERVER_PORT = 12000  # TODO
-WITNESS_PORT = 12001
-CLIENT_PORT = 12002
-MAX_HAIKU_SIZE = 65535
-
-log = logging.getLogger(__name__)
-
 
 class ServerTCPHandler(SocketServer.ThreadingMixIn, SocketServer.BaseRequestHandler):
     """
@@ -24,19 +16,20 @@ class ServerTCPHandler(SocketServer.ThreadingMixIn, SocketServer.BaseRequestHand
     """
 
     allow_reuse_address = True
+    log = logging.getLogger(__name__)
 
     @classmethod
-    def listen(cls, port, hostname=ALL_INTERFACES):
-        log.error("Server listening")
-        server = SocketServer.TCPServer((hostname, port), ServerTCPHandler)
+    def listen(cls, configuration):
+        server = SocketServer.TCPServer((configuration.interface, configuration.ports.server), ServerTCPHandler)
+        server.configuration = configuration
         server.terminate = lambda: (server.shutdown(), server.socket.close())
         threading.Thread(target=server.serve_forever).start()
         return server
 
     def handle(self):
         # Receive the data from the client
-        data = self.request.recv(MAX_HAIKU_SIZE).strip()
-        log.error("Server: received {} from {}".format(data, self.client_address[0]))
+        data = self.request.recv(self.server.configuration.max_size).strip()
+        self.log.error("Server: received {} from {}".format(data, self.client_address[0]))
 
         # Identify the address of the witness
         witness_hostname = self.select_witness(data)
@@ -45,7 +38,7 @@ class ServerTCPHandler(SocketServer.ThreadingMixIn, SocketServer.BaseRequestHand
         witness = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             # Connect to server and send data
-            witness.connect((witness_hostname, WITNESS_PORT))
+            witness.connect((witness_hostname, self.server.configuration.ports.witness))
             witness.sendall(data)
         finally:
             witness.close()

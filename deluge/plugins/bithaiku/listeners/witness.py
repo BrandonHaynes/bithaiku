@@ -5,13 +5,6 @@ import logging
 import hashlib
 import json
 
-ALL_INTERFACES = ''
-SERVER_PORT = 12000  #TODO
-WITNESS_PORT = 12001
-CLIENT_PORT = 12002
-MAX_HAIKU_SIZE = 65535
-log = logging.getLogger(__name__)
-
 
 class WitnessTCPHandler(SocketServer.BaseRequestHandler):
     """
@@ -25,25 +18,27 @@ class WitnessTCPHandler(SocketServer.BaseRequestHandler):
     """
 
     allow_reuse_address = True
+    log = logging.getLogger(__name__)
 
     @classmethod
-    def listen(cls, port, hostname=ALL_INTERFACES):
-        server = SocketServer.TCPServer((hostname, port), WitnessTCPHandler)
+    def listen(cls, configuration):
+        server = SocketServer.TCPServer((configuration.interface, configuration.ports.witness), WitnessTCPHandler)
         server.terminate = lambda: (server.shutdown(), server.socket.close())
+        server.configuration = configuration
         threading.Thread(target=server.serve_forever).start()
         return server
 
     def handle(self):
         # Receive the data from the server, which is the haiku
-        data = self.request.recv(MAX_HAIKU_SIZE).strip()
+        data = self.request.recv(self.server.configuration.max_size).strip()
         message = json.loads(data)
-        log.error("Witness: received {} from {}".format(data, self.client_address[0]))
+        self.log.error("Witness: received {} from {}".format(data, self.client_address[0]))
 
         # Send hash of haiku to the known client
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             # Connect to client and send the hash of the haiku 
-            client.connect((message['host'], CLIENT_PORT))
+            client.connect((message['host'], self.server.configuration.ports.client))
             client.sendall(self.generate_client_response(message))
         finally:
             client.close()

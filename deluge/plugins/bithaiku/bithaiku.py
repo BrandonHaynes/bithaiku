@@ -6,11 +6,6 @@ import logging
 import json
 
 MIN_SPEED = 1./1024
-SERVER_PORT = 12000
-WITNESS_PORT = 12001
-CLIENT_PORT = 12002
-MAX_HAIKU_SIZE = 65535
-ALL_INTERFACES = ''
 
 log = logging.getLogger(__name__)
 
@@ -20,9 +15,10 @@ def hash_digest(value):
 
 
 class BitHaikuMonitor:
-    def __init__(self, torrent, haiku, running_delay=0.1, paused_delay=5):
+    def __init__(self, configuration, torrent, haiku, running_delay=0.1, paused_delay=5):
         self.torrent = torrent
         self.haiku = haiku
+        self.configuration = configuration
         self.verifying_peers = []
         self.verified_peers = []
         self.pending_peers = []
@@ -97,7 +93,7 @@ class BitHaikuServerVerifier:
         client.settimeout(5)
 
         try:
-            client.connect(('localhost', SERVER_PORT))
+            client.connect(('localhost', self.monitor.configuration.ports.server))
             # client.connect((self.host, SERVER_PORT))
             client.sendall(json.dumps({"host": "localhost", "data": self.monitor.haiku}))
         except socket.error as e:
@@ -115,13 +111,14 @@ class BitHaikuWitnessVerifier(asyncore.dispatcher_with_send):
     def __init__(self, ip, monitor):
         asyncore.dispatcher.__init__(self)
         self.monitor = monitor
+        self.configuration = monitor.configuration
         self.ip = ip
 
     def resolve(self):
         try:
             self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
             self.set_reuse_addr()
-            self.bind((ALL_INTERFACES, CLIENT_PORT))
+            self.bind((self.configuration.interface, self.configuration.ports.client))
             self.listen(8)
             asyncore.loop()
         except socket.error as e:
@@ -134,10 +131,10 @@ class BitHaikuWitnessVerifier(asyncore.dispatcher_with_send):
             client, address = pair
             log.error("Incoming connection from " + str(address))
 
-            data = client.recv(MAX_HAIKU_SIZE).strip()
+            data = client.recv(self.configuration.max_size).strip()
             client.close()
 
-            log.error("Read " + data)
+            log.error("Client: received " + data)
 
             # {"hash": "9fc8b3b5a8b87a1d4886bb99c1450d9fed80191e94efcba0c0132296c3e4cce0"}
             if self.extract_hash(data) == hash_digest(self.monitor.haiku):
