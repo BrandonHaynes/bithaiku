@@ -24,7 +24,7 @@ class ServerTCPHandler(SocketServer.BaseRequestHandler):
         # Create json object
         messsage = json.dumps(
                 { 'client_host': 'localhost',
-                  'client_port': '12002',
+                  'client_port': 12001,
                   'haiku': 'furu ike ya\nkawazu tobikomu\nmizu no oto'
                  })
 

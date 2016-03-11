@@ -1,6 +1,7 @@
 import SocketServer
 import socket
 import hashlib
+import json
 
 class WitnessTCPHandler(SocketServer.BaseRequestHandler):
     """
@@ -15,7 +16,6 @@ class WitnessTCPHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
         # Recieve the data from the server, which is the haiku
-        # TODO JSON wrapper
         self.data = self.request.recv(1024).strip()
         print "{} wrote:".format(self.client_address[0])
         print self.data
@@ -23,8 +23,9 @@ class WitnessTCPHandler(SocketServer.BaseRequestHandler):
         self.request.sendall(self.data.upper())
 
         # Get the haiku and address from the JSON object
-        ClientHOST, ClientPORT = "localhost", 12001        
-        haiku = self.data
+        message = json.loads(self.data)
+        ClientHOST, ClientPORT = message['client_host'], message['client_port']        
+        haiku = message['haiku']
 
         # Send hash of haiku to the known client
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)        
