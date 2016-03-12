@@ -56,7 +56,8 @@ class BitHaikuMonitor:
     def verify_peer(self, ip):
         self.pause_torrent()
         self.dht.add(ip.split(":")[0])
-        return BitHaikuServerVerifier(ip, self).verify()
+        if not self.verifying_peers:
+            return BitHaikuServerVerifier(ip, self).verify()
 
     def pause_torrent(self):
         self.torrent.set_max_download_speed(MIN_SPEED)
