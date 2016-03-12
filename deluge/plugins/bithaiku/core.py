@@ -13,6 +13,7 @@ from deluge.core.rpcserver import export
 from deluge.plugins.bithaiku import BitHaikuMonitor
 from deluge.plugins.bithaiku.listeners import ServerTCPHandler, WitnessTCPHandler
 from deluge.plugins.bithaiku.configuration import BitHaikuConfiguration
+from deluge.plugins.bithaiku.dht import BitHaikuDHT
 
 DEFAULT_CONFIG = {
     "haiku": "Hippopotamus\n"
@@ -31,6 +32,7 @@ class Core(CorePluginBase):
         self.config = None
         self.monitors = {}
         self.configuration = BitHaikuConfiguration()
+        self.dht = None
         self.listeners = collections.namedtuple('Listeners', 'server witness client')
 
     @staticmethod
@@ -40,7 +42,7 @@ class Core(CorePluginBase):
 
         plugin.config["torrents"].append(torrent_id)
         plugin.config.save()
-        plugin.monitors[torrent_id] = BitHaikuMonitor(plugin.configuration, torrent, plugin.config["haiku"])
+        plugin.monitors[torrent_id] = BitHaikuMonitor(plugin.configuration, torrent, plugin.config["haiku"], plugin.dht)
         plugin.monitors[torrent_id].monitor()
 
     @staticmethod
@@ -55,7 +57,8 @@ class Core(CorePluginBase):
                                                              partial(self.on_torrent_added, self))
         component.get("EventManager").register_event_handler("TorrentRemovedEvent",
                                                              partial(self.on_torrent_removed, self))
-        self.listeners.server = ServerTCPHandler.listen(self.configuration)
+        self.dht = BitHaikuDHT(self.configuration)
+        self.listeners.server = ServerTCPHandler.listen(self.configuration, self.dht)
         self.listeners.witness = WitnessTCPHandler.listen(self.configuration)
         log.error("BitHaiku plugin enabled.")
 

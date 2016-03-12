@@ -15,10 +15,11 @@ def hash_digest(value):
 
 
 class BitHaikuMonitor:
-    def __init__(self, configuration, torrent, haiku, running_delay=0.1, paused_delay=5):
+    def __init__(self, configuration, torrent, haiku, dht, running_delay=0.1, paused_delay=5):
         self.torrent = torrent
         self.haiku = haiku
         self.configuration = configuration
+        self.dht = dht
         self.verifying_peers = []
         self.verified_peers = []
         self.pending_peers = []
@@ -54,6 +55,7 @@ class BitHaikuMonitor:
 
     def verify_peer(self, ip):
         self.pause_torrent()
+        self.dht.add(ip.split(":")[0])
         return BitHaikuServerVerifier(ip, self).verify()
 
     def pause_torrent(self):
@@ -93,9 +95,8 @@ class BitHaikuServerVerifier:
         client.settimeout(5)
 
         try:
-            client.connect(('localhost', self.monitor.configuration.ports.server))
-            # client.connect((self.host, SERVER_PORT))
-            client.sendall(json.dumps({"host": "localhost", "data": self.monitor.haiku}))
+            client.connect((self.host, self.monitor.configuration.ports.server))
+            client.sendall(json.dumps({"host": self.monitor.configuration.local_address, "data": self.monitor.haiku}))
         except socket.error as e:
             log.error(e)
             return self.monitor.abandon_verification(self.ip)

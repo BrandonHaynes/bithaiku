@@ -19,9 +19,10 @@ class ServerTCPHandler(SocketServer.ThreadingMixIn, SocketServer.BaseRequestHand
     log = logging.getLogger(__name__)
 
     @classmethod
-    def listen(cls, configuration):
+    def listen(cls, configuration, dht):
         server = SocketServer.TCPServer((configuration.interface, configuration.ports.server), ServerTCPHandler)
         server.configuration = configuration
+        server.dht = dht
         server.terminate = lambda: (server.shutdown(), server.socket.close())
         threading.Thread(target=server.serve_forever).start()
         return server
@@ -32,7 +33,7 @@ class ServerTCPHandler(SocketServer.ThreadingMixIn, SocketServer.BaseRequestHand
         self.log.error("Server: received {} from {}".format(data, self.client_address[0]))
 
         # Identify the address of the witness
-        witness_hostname = self.select_witness(data)
+        witness_hostname = self.select_witness(self.server.dht, data)
 
         # Send haiku to the witness
         witness = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -44,9 +45,7 @@ class ServerTCPHandler(SocketServer.ThreadingMixIn, SocketServer.BaseRequestHand
             witness.close()
 
     @staticmethod
-    def select_witness(haiku):
-        # TODO Hash the haiku and use the DHT to obtain
-        # the address for a witness.
-
-        # Return the placeholder witness address
-        return "localhost"
+    def select_witness(dht, haiku):
+        ip = dht.find_owner(haiku)
+        ServerTCPHandler.log.error("Selected witness " + ip)
+        return ip
