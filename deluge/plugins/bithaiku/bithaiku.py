@@ -37,11 +37,11 @@ class BitHaikuMonitor:
         return self.paused_delay if self.verifying_peers else self.running_delay
 
     def monitor(self):
-        if not self.terminated:
-            success = all(map(self.verify_peer,
-                              (peer['ip']
-                               for peer in self.torrent.get_peers() + [{'ip': ip} for ip in self.pending_peers]
-                               if peer['ip'] not in (self.verified_peers + self.verifying_peers))))
+        if not self.terminated and not self.torrent.is_finished:
+            pending = [peer['ip']
+                       for peer in self.torrent.get_peers() + [{'ip': ip} for ip in self.pending_peers]
+                       if peer['ip'] not in (self.verified_peers + self.verifying_peers)]
+            success = [self.verify_peer(pending[0]) if pending else True]
 
             if self.verifying_peers or not success:
                 self.pause_torrent()
